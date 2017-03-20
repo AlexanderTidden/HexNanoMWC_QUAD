@@ -515,6 +515,44 @@ static struct {
   static int32_t baroPressureSum;
 #endif
 
+#if MOTORTEST
+  static uint16_t i = MINTHROTTLE;
+  static uint8_t motorTestCompleted = 0;
+#endif
+
+#if MOTORTEST
+void MotorTestVectors()
+{
+    if(f.ARMED)
+    {
+        motor[0] = i; //REAR_R
+        motor[1] = i; //FRONT_R
+        motor[2] = i; //REAR_L
+        motor[3] = i; //FRONT_L
+
+        if((0 == motorTestCompleted)&&(i <= MAXTHROTTLE))
+        {
+            i++;
+        }
+        else
+        {
+            motorTestCompleted = 1;
+            i = MINTHROTTLE;
+        }
+    }
+    else
+    {
+    i = MINTHROTTLE;
+    motorTestCompleted = 0;
+
+    motor[0] = MINCOMMAND; //REAR_R
+    motor[1] = MINCOMMAND; //FRONT_R
+    motor[2] = MINCOMMAND; //REAR_L
+    motor[3] = MINCOMMAND; //FRONT_L
+    }
+}
+#endif //MOTORTEST
+
 void annexCode() { // this code is excetuted at each loop and won't interfere with control loop if it lasts less than 650 microseconds
   static uint32_t calibratedAccTime;
   uint16_t tmp,tmp2;
@@ -703,133 +741,133 @@ void annexCode() { // this code is excetuted at each loop and won't interfere wi
 }
 
 void system_init(void)
-{	
+{   
   #if !defined(GPS_PROMINI)
-	SerialOpen(0,SERIAL0_COM_SPEED);
+    SerialOpen(0,SERIAL0_COM_SPEED);
     #if defined(PROMICRO)
-	SerialOpen(1,SERIAL1_COM_SPEED);
+    SerialOpen(1,SERIAL1_COM_SPEED);
     #endif
     #if defined(MEGA)
-	SerialOpen(1,SERIAL1_COM_SPEED);
-	SerialOpen(2,SERIAL2_COM_SPEED);
-	SerialOpen(3,SERIAL3_COM_SPEED);
+    SerialOpen(1,SERIAL1_COM_SPEED);
+    SerialOpen(2,SERIAL2_COM_SPEED);
+    SerialOpen(3,SERIAL3_COM_SPEED);
     #endif
   #endif
-	LEDPIN_PINMODE;
-	POWERPIN_PINMODE;
-	BUZZERPIN_PINMODE;
-	STABLEPIN_PINMODE;
-	POWERPIN_OFF;
-	initOutput();
+    LEDPIN_PINMODE;
+    POWERPIN_PINMODE;
+    BUZZERPIN_PINMODE;
+    STABLEPIN_PINMODE;
+    POWERPIN_OFF;
+    initOutput();
   #ifdef MULTIPLE_CONFIGURATION_PROFILES
-	for(global_conf.currentSet=0; global_conf.currentSet<3; global_conf.currentSet++) {  // check all settings integrity
-		readEEPROM();
-	}
+    for(global_conf.currentSet=0; global_conf.currentSet<3; global_conf.currentSet++) {  // check all settings integrity
+        readEEPROM();
+    }
   #else
-	global_conf.currentSet=0;
-	readEEPROM();
+    global_conf.currentSet=0;
+    readEEPROM();
   #endif
-	readGlobalSet();
-	readEEPROM(); 								   // load current setting data
-	blinkLED(2,40,global_conf.currentSet+1);			
-	configureReceiver();
+    readGlobalSet();
+    readEEPROM();                                  // load current setting data
+    blinkLED(2,40,global_conf.currentSet+1);            
+    configureReceiver();
   #if defined (PILOTLAMP) 
-	PL_INIT;
+    PL_INIT;
   #endif
   #if defined(OPENLRSv2MULTI)
-	initOpenLRS();
+    initOpenLRS();
   #endif
-	initSensors();
+    initSensors();
   #if defined(I2C_GPS) || defined(GPS_SERIAL) || defined(GPS_FROM_OSD)
-	GPS_set_pids();
+    GPS_set_pids();
   #endif
-	previousTime = micros();
+    previousTime = micros();
   #if defined(GIMBAL)
-	calibratingA = 512;
+    calibratingA = 512;
   #endif
-	calibratingG = 512;
-	calibratingB = 200;  // 10 seconds init_delay + 200 * 25 ms = 15 seconds before ground pressure settles
+    calibratingG = 512;
+    calibratingB = 200;  // 10 seconds init_delay + 200 * 25 ms = 15 seconds before ground pressure settles
   #if defined(POWERMETER)
-	for(uint8_t i=0;i<=PMOTOR_SUM;i++)
-	pMeter[i]=0;
+    for(uint8_t i=0;i<=PMOTOR_SUM;i++)
+    pMeter[i]=0;
   #endif
-	/************************************/
+    /************************************/
   #if defined(GPS_SERIAL)
-	GPS_SerialInit();
-	for(uint8_t i=0;i<=5;i++){
-	GPS_NewData(); 
-	LEDPIN_ON
-	delay(20);
-	LEDPIN_OFF
-	delay(80);
-	}
-	if(!GPS_Present){
-	SerialEnd(GPS_SERIAL);
-	SerialOpen(0,SERIAL0_COM_SPEED);
-	}
+    GPS_SerialInit();
+    for(uint8_t i=0;i<=5;i++){
+    GPS_NewData(); 
+    LEDPIN_ON
+    delay(20);
+    LEDPIN_OFF
+    delay(80);
+    }
+    if(!GPS_Present){
+    SerialEnd(GPS_SERIAL);
+    SerialOpen(0,SERIAL0_COM_SPEED);
+    }
     #if !defined(GPS_PROMINI)
-	GPS_Present = 1;
+    GPS_Present = 1;
     #endif
-	GPS_Enable = GPS_Present;	 
+    GPS_Enable = GPS_Present;    
   #endif
-	/************************************/
-	 
+    /************************************/
+     
   #if defined(I2C_GPS) || defined(TINY_GPS) || defined(GPS_FROM_OSD)
-	GPS_Enable = 1;
+    GPS_Enable = 1;
   #endif
-	  
+      
   #if defined(LCD_ETPP) || defined(LCD_LCD03) || defined(OLED_I2C_128x64) || defined(LCD_TELEMETRY_STEP)
-	initLCD();
+    initLCD();
   #endif
   #ifdef LCD_TELEMETRY_DEBUG
-	telemetry_auto = 1;
+    telemetry_auto = 1;
   #endif
   #ifdef LCD_CONF_DEBUG
-	configurationLoop();
+    configurationLoop();
   #endif
   #ifdef LANDING_LIGHTS_DDR
-	init_landing_lights();
+    init_landing_lights();
   #endif
-	ADCSRA |= _BV(ADPS2) ; ADCSRA &= ~_BV(ADPS1); ADCSRA &= ~_BV(ADPS0); // this speeds up analogRead without loosing too much resolution: http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1208715493/11
+    ADCSRA |= _BV(ADPS2) ; ADCSRA &= ~_BV(ADPS1); ADCSRA &= ~_BV(ADPS0); // this speeds up analogRead without loosing too much resolution: http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1208715493/11
   #if defined(LED_FLASHER)
-	init_led_flasher();
-	led_flasher_set_sequence(LED_FLASHER_SEQUENCE);
+    init_led_flasher();
+    led_flasher_set_sequence(LED_FLASHER_SEQUENCE);
   #endif
-	f.SMALL_ANGLES_25=1; // important for gyro only conf
+    f.SMALL_ANGLES_25=1; // important for gyro only conf
   #ifdef LOG_PERMANENT
-	// read last stored set
-	readPLog();
-	plog.lifetime += plog.armed_time / 1000000;
-	plog.start++;		  // #powercycle/reset/initialize events
-	// dump plog data to terminal
+    // read last stored set
+    readPLog();
+    plog.lifetime += plog.armed_time / 1000000;
+    plog.start++;         // #powercycle/reset/initialize events
+    // dump plog data to terminal
     #ifdef LOG_PERMANENT_SHOW_AT_STARTUP
-	dumpPLog(0);
+    dumpPLog(0);
     #endif
-	plog.armed_time = 0;   // lifetime in seconds
-	//plog.running = 0; 	  // toggle on arm & disarm to monitor for clean shutdown vs. powercut
+    plog.armed_time = 0;   // lifetime in seconds
+    //plog.running = 0;       // toggle on arm & disarm to monitor for clean shutdown vs. powercut
   #endif
-	
-	 debugmsg_append_str("initialization completed\n");
+    
+     debugmsg_append_str("initialization completed\n");
 }
 
 
 void setup()
 {
-  	//------------------------------------------------------------------
+    //------------------------------------------------------------------
         calibration_flag = 0;
-	//------------------------------------------------------------------
-	system_init();
+    //------------------------------------------------------------------
+    system_init();
 }
 
 //------------------------------------------------------------------
 void calibration_fun(void)
 {
-	calibratingG = 512;
+    calibratingG = 512;
   #if GPS 
-	GPS_reset_home_position();
+    GPS_reset_home_position();
   #endif
   #if BARO
-	calibratingB = 10;  // calibrate baro to new ground level (10 * 25 ms = ~250 ms non blocking)
+    calibratingB = 10;  // calibrate baro to new ground level (10 * 25 ms = ~250 ms non blocking)
   #endif
 }
 //------------------------------------------------------------------
@@ -866,10 +904,10 @@ void go_arm() {
   }
   
   //------------------------------------------------------------------
-	if (calibration_flag == 0) {
-		calibration_flag = 1;
-		calibration_fun();
-	}
+    if (calibration_flag == 0) {
+        calibration_flag = 1;
+        calibration_fun();
+    }
 //------------------------------------------------------------------
 }
 
@@ -996,9 +1034,9 @@ void loop () {
       errorAngleI[ROLL] = 0; errorAngleI[PITCH] = 0;
       if (conf.activate[BOXARM] > 0) {             // Arming/Disarming via ARM BOX
         if ( rcOptions[BOXARM] && f.OK_TO_ARM ) 
-	go_arm();
+    go_arm();
         else if (f.ARMED) 
-	go_disarm();
+    go_disarm();
       }
     }
     if(rcDelayCommand == 20) {
@@ -1012,9 +1050,9 @@ void loop () {
       } else {                        // actions during not armed
         i=0;
         if (rcSticks == THR_LO + YAW_LO + PIT_LO + ROL_CE) {    // GYRO calibration
-	//------------------------------------------------------------
-		calibration_fun();
-	//------------------------------------------------------------
+    //------------------------------------------------------------
+        calibration_fun();
+    //------------------------------------------------------------
         }
         #if defined(INFLIGHT_ACC_CALIBRATION)  
          else if (rcSticks == THR_LO + YAW_LO + PIT_HI + ROL_HI) {    // Inflight ACC calibration START/STOP
@@ -1425,9 +1463,12 @@ void loop () {
                       
     axisPID[axis] =  PTerm + ITerm - DTerm;
   }
-
+#if MOTORTEST
+  MotorTestVectors();
+#else
   mixTable();
   writeServos();
+#endif
   writeMotors();
 }
 
